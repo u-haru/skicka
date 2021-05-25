@@ -555,6 +555,11 @@ func (gd *GDrive) UpdateMetadataCache(filename string) error {
 		// the parent folder's name to the in-progress path until we hit the
 		// root directory.  The path is then added to the paths array.
 		var paths []string
+
+		if f.MimeType == "application/vnd.google-apps.shortcut" {
+			f = gd.ShortcutTarget(f)
+		}
+
 		for _, parentId := range f.ParentIds {
 			gd.getFilePath(f.Path, parentId, idToFile, &paths)
 		}
@@ -589,6 +594,15 @@ func (gd *GDrive) UpdateMetadataCache(filename string) error {
 	}
 
 	return nil
+}
+
+func (gd *GDrive) ShortcutTarget(f *File) *File {
+	fi, err := gd.svc.Files.Get(f.Id).Fields("shortcutDetails").Do()
+	if err == nil {
+		f.Id = fi.ShortcutDetails.TargetId
+		f.MimeType = fi.ShortcutDetails.TargetMimeType
+	}
+	return f
 }
 
 // Google Drive associates a unique string id with each file and folder.
